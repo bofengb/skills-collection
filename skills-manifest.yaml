@@ -1,0 +1,28 @@
+# Skills Manifest
+# List skills to collect from public GitHub repos.
+# The sync script will download these weekly via GitHub Actions.
+
+skills:
+  # Test: brainstorming skill from obra/superpowers
+  - name: brainstorming
+    source:
+      repo: obra/superpowers
+      branch: main
+      path: skills/brainstorming/
+    destination: .claude/skills/brainstorming/
+
+  # Example entry (uncomment and modify):
+  # - name: writing-clearly
+  #   source:
+  #     repo: anthropics/claude-code-skills
+  #     branch: main
+  #     path: writing/skill.md
+  #   destination: .claude/skills/writing/skill.md
+
+  # Example for a folder of skills:
+  # - name: postgresql
+  #   source:
+  #     repo: supabase/claude-skills
+  #     branch: main
+  #     path: postgresql/
+  #   destination: .claude/skills/postgresql/
