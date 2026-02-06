@@ -16,6 +16,9 @@ All skills in this collection are sourced from their original authors. This repo
 |-------|--------|--------|
 | brainstorming | [obra/superpowers](https://github.com/obra/superpowers/tree/main/skills/brainstorming) | [obra](https://github.com/obra) |
 | frontend-design | [anthropics/claude-code](https://github.com/anthropics/claude-code/tree/main/plugins/frontend-design/skills/frontend-design) | [Anthropic](https://github.com/anthropics) |
+| supabase-postgres-best-practices | [supabase/agent-skills](https://github.com/supabase/agent-skills/tree/main/skills/supabase-postgres-best-practices) | [Supabase](https://github.com/supabase) |
+| find-skills | [vercel-labs/skills](https://github.com/vercel-labs/skills/tree/main/skills/find-skills) | [Vercel](https://github.com/vercel-labs) |
+| database-schema-designer | [softaworks/agent-toolkit](https://github.com/softaworks/agent-toolkit/tree/main/skills/database-schema-designer) | [Softaworks](https://github.com/softaworks) |
 
 ## Adding Skills
 

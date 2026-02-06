@@ -3,7 +3,7 @@
 # The sync script will download these weekly via GitHub Actions.
 
 skills:
-  # obra/superpowers's brainstorming skill 
+  # obra/superpowers' brainstorming skill 
   - name: brainstorming
     source:
       repo: obra/superpowers
@@ -18,3 +18,27 @@ skills:
       branch: main
       path: plugins/frontend-design/skills/frontend-design/
     destination: skills/frontend-design/
+
+  # Supabase's postgres best practices skill
+  - name: supabase-postgres-best-practices
+    source:
+      repo: supabase/agent-skills
+      branch: main
+      path: skills/supabase-postgres-best-practices/
+    destination: skills/supabase-postgres-best-practices/
+
+  # Vercel's find-skills skill
+  - name: find-skills
+    source:
+      repo: vercel-labs/skills
+      branch: main
+      path: skills/find-skills/
+    destination: skills/find-skills/
+
+  # Softaworks' database schema designer skill
+  - name: database-schema-designer
+    source:
+      repo: softaworks/agent-toolkit
+      branch: main
+      path: skills/database-schema-designer/
+    destination: skills/database-schema-designer/
