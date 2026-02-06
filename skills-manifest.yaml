@@ -11,6 +11,14 @@ skills:
       path: skills/brainstorming/
     destination: .claude/skills/brainstorming/
 
+  # Anthropic's frontend-design skill
+  - name: frontend-design
+    source:
+      repo: anthropics/claude-code
+      branch: main
+      path: plugins/frontend-design/skills/frontend-design/
+    destination: .claude/skills/frontend-design/
+
   # Example entry (uncomment and modify):
   # - name: writing-clearly
   #   source:
