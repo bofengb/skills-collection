@@ -3,13 +3,13 @@
 # The sync script will download these weekly via GitHub Actions.
 
 skills:
-  # Test: brainstorming skill from obra/superpowers
+  # obra/superpowers's brainstorming skill 
   - name: brainstorming
     source:
       repo: obra/superpowers
       branch: main
       path: skills/brainstorming/
-    destination: .claude/skills/brainstorming/
+    destination: skills/brainstorming/
 
   # Anthropic's frontend-design skill
   - name: frontend-design
@@ -17,20 +17,4 @@ skills:
       repo: anthropics/claude-code
       branch: main
       path: plugins/frontend-design/skills/frontend-design/
-    destination: .claude/skills/frontend-design/
-
-  # Example entry (uncomment and modify):
-  # - name: writing-clearly
-  #   source:
-  #     repo: anthropics/claude-code-skills
-  #     branch: main
-  #     path: writing/skill.md
-  #   destination: .claude/skills/writing/skill.md
-
-  # Example for a folder of skills:
-  # - name: postgresql
-  #   source:
-  #     repo: supabase/claude-skills
-  #     branch: main
-  #     path: postgresql/
-  #   destination: .claude/skills/postgresql/
+    destination: skills/frontend-design/
