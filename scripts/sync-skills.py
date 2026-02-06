@@ -5,6 +5,7 @@ Sync skills from public GitHub repos based on skills-manifest.yaml
 
 import os
 import sys
+import shutil
 import yaml
 import urllib.request
 import urllib.error
@@ -112,6 +113,10 @@ def sync_skill(skill: dict) -> List[str]:
     dest_path = Path(skill["destination"])
 
     print(f"Syncing: {name} from {repo}")
+
+    # Delete existing directory to ensure clean mirror (removes stale files)
+    if dest_path.exists():
+        shutil.rmtree(dest_path)
 
     # Check if source is a directory (ends with /)
     if src_path.endswith("/"):

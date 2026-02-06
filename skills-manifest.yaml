@@ -42,3 +42,11 @@ skills:
       branch: main
       path: skills/database-schema-designer/
     destination: skills/database-schema-designer/
+
+  # wshobson's PostgreSQL database design skill
+  - name: postgresql-design
+    source:
+      repo: wshobson/agents
+      branch: main
+      path: plugins/database-design/skills/postgresql/
+    destination: skills/postgresql-design/
