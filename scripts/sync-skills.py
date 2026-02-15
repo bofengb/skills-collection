@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-Sync skills from public GitHub repos based on skills-manifest.yaml
+Sync skills from public GitHub repos based on skills/skills-manifest.yaml
 """
 
 import os
 import sys
-import shutil
 import yaml
 import urllib.request
 import urllib.error
@@ -81,13 +80,14 @@ def sync_file(repo: str, branch: str, src_path: str, dest_path: Path) -> bool:
     return True
 
 
-def sync_directory(repo: str, branch: str, src_path: str, dest_path: Path) -> List[str]:
-    """Sync a directory recursively. Returns list of updated files."""
+def sync_directory(repo: str, branch: str, src_path: str, dest_path: Path) -> tuple:
+    """Sync a directory recursively. Returns (list of updated files, set of all synced dest paths)."""
     updated = []
+    synced_paths = set()
     contents = fetch_directory_contents(repo, src_path, branch)
 
     if contents is None:
-        return updated
+        return updated, synced_paths
 
     for item in contents:
         item_src = item["path"]
@@ -95,16 +95,36 @@ def sync_directory(repo: str, branch: str, src_path: str, dest_path: Path) -> Li
         item_dest = dest_path / item_name
 
         if item["type"] == "file":
+            synced_paths.add(item_dest)
             if sync_file(repo, branch, item_src, item_dest):
                 updated.append(str(item_dest))
         elif item["type"] == "dir":
-            updated.extend(sync_directory(repo, branch, item_src, item_dest))
+            sub_updated, sub_synced = sync_directory(repo, branch, item_src, item_dest)
+            updated.extend(sub_updated)
+            synced_paths.update(sub_synced)
 
-    return updated
+    return updated, synced_paths
 
 
-def sync_skill(skill: dict) -> List[str]:
-    """Sync a single skill entry. Returns list of updated files."""
+def remove_stale_files(dest_path: Path, synced_paths: set) -> List[str]:
+    """Remove files in dest_path that are not in synced_paths. Returns list of removed files."""
+    removed = []
+    if not dest_path.exists():
+        return removed
+    for existing_file in sorted(dest_path.rglob("*")):
+        if existing_file.is_file() and existing_file not in synced_paths:
+            existing_file.unlink()
+            removed.append(str(existing_file))
+            print(f"  Removed stale file: {existing_file}")
+    # Clean up empty directories
+    for dirpath in sorted(dest_path.rglob("*"), reverse=True):
+        if dirpath.is_dir() and not any(dirpath.iterdir()):
+            dirpath.rmdir()
+    return removed
+
+
+def sync_skill(skill: dict) -> Dict:
+    """Sync a single skill entry. Returns dict with 'updated' and 'removed' file lists."""
     name = skill["name"]
     source = skill["source"]
     repo = source["repo"]
@@ -114,24 +134,25 @@ def sync_skill(skill: dict) -> List[str]:
 
     print(f"Syncing: {name} from {repo}")
 
-    # Delete existing directory to ensure clean mirror (removes stale files)
-    if dest_path.exists():
-        shutil.rmtree(dest_path)
-
     # Check if source is a directory (ends with /)
     if src_path.endswith("/"):
-        return sync_directory(repo, branch, src_path.rstrip("/"), dest_path)
+        updated, synced_paths = sync_directory(repo, branch, src_path.rstrip("/"), dest_path)
+        removed = remove_stale_files(dest_path, synced_paths)
     else:
         if sync_file(repo, branch, src_path, dest_path):
-            return [str(dest_path)]
-        return []
+            updated = [str(dest_path)]
+        else:
+            updated = []
+        removed = []
+
+    return {"updated": updated, "removed": removed}
 
 
 def main():
     # Find manifest file
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent
-    manifest_path = repo_root / "skills-manifest.yaml"
+    manifest_path = repo_root / "skills" / "skills-manifest.yaml"
 
     if not manifest_path.exists():
         print(f"Error: {manifest_path} not found")
@@ -151,31 +172,56 @@ def main():
 
     # Sync all skills
     all_updated = []
-    updated_skills = []
+    all_removed = []
+    changed_skills = []
 
     for skill in skills:
-        updated = sync_skill(skill)
-        if updated:
-            all_updated.extend(updated)
-            updated_skills.append(skill["name"])
+        result = sync_skill(skill)
+        if result["updated"] or result["removed"]:
+            all_updated.extend(result["updated"])
+            all_removed.extend(result["removed"])
+            changed_skills.append(skill["name"])
 
     # Summary
     print()
-    if all_updated:
-        print(f"Updated {len(all_updated)} file(s):")
-        for f in all_updated:
-            print(f"  - {f}")
+    has_changes = bool(all_updated or all_removed)
 
-        # Output for GitHub Actions
-        if os.environ.get("GITHUB_OUTPUT"):
-            with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-                f.write(f"updated=true\n")
-                f.write(f"skills={', '.join(updated_skills)}\n")
+    if has_changes:
+        if all_updated:
+            print(f"Updated {len(all_updated)} file(s):")
+            for f in all_updated:
+                print(f"  + {f}")
+        if all_removed:
+            print(f"Removed {len(all_removed)} file(s):")
+            for f in all_removed:
+                print(f"  - {f}")
     else:
         print("All skills are up to date")
-        if os.environ.get("GITHUB_OUTPUT"):
-            with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-                f.write("updated=false\n")
+
+    # Output for GitHub Actions
+    if os.environ.get("GITHUB_OUTPUT"):
+        with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+            fh.write(f"updated={'true' if has_changes else 'false'}\n")
+            fh.write(f"skills={', '.join(changed_skills)}\n")
+
+    # Output for GitHub Actions job summary
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh:
+            fh.write("## Skills Sync Summary\n\n")
+            if has_changes:
+                fh.write(f"**Skills changed:** {', '.join(changed_skills)}\n\n")
+                if all_updated:
+                    fh.write(f"### Updated ({len(all_updated)} files)\n\n")
+                    for f in all_updated:
+                        fh.write(f"- `{f}`\n")
+                    fh.write("\n")
+                if all_removed:
+                    fh.write(f"### Removed ({len(all_removed)} files)\n\n")
+                    for f in all_removed:
+                        fh.write(f"- `{f}`\n")
+                    fh.write("\n")
+            else:
+                fh.write("All skills are up to date. No changes detected.\n")
 
 
 if __name__ == "__main__":

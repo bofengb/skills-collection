@@ -6,7 +6,7 @@ A personal collection of Claude Code skills synced from public repositories via 
 
 ## How It Works
 
-- Skills are defined in `skills-manifest.yaml` (at the repo root)
+- Skills are defined in `skills-manifest.yaml` (in this directory)
 - A GitHub Action runs manually to sync updates from upstream repos
 - Skills are downloaded to this `skills/` directory
 
@@ -25,7 +25,7 @@ A personal collection of Claude Code skills synced from public repositories via 
 
 ## Adding Skills
 
-Edit `skills-manifest.yaml` (at the repo root):
+Edit `skills-manifest.yaml` (in this directory):
 
 ```yaml
 skills:
