@@ -9,6 +9,7 @@ import yaml
 import urllib.request
 import urllib.error
 import json
+import posixpath
 from pathlib import Path
 from typing import Optional, List, Dict
 
@@ -60,6 +61,33 @@ def fetch_directory_contents(repo: str, path: str, branch: str) -> Optional[List
         return None
 
 
+def resolve_symlink_target(symlink_path: str, target: str) -> str:
+    """Resolve a symlink's relative target to an absolute GitHub repo path."""
+    symlink_dir = posixpath.dirname(symlink_path)
+    return posixpath.normpath(posixpath.join(symlink_dir, target))
+
+
+def fetch_path_type(repo: str, path: str, branch: str) -> Optional[str]:
+    """Determine whether a GitHub repo path is a 'file' or 'dir'."""
+    url = get_api_url(repo, path, branch)
+    try:
+        req = urllib.request.Request(url)
+        req.add_header("Accept", "application/vnd.github.v3+json")
+        token = os.environ.get("GITHUB_TOKEN")
+        if token:
+            req.add_header("Authorization", f"token {token}")
+        with urllib.request.urlopen(req, timeout=30) as response:
+            data = json.loads(response.read())
+            if isinstance(data, list):
+                return "dir"
+            elif isinstance(data, dict):
+                return data.get("type", "file")
+            return None
+    except (urllib.error.HTTPError, urllib.error.URLError) as e:
+        print(f"  Error fetching path type for {path}: {e}")
+        return None
+
+
 def sync_file(repo: str, branch: str, src_path: str, dest_path: Path) -> bool:
     """Sync a single file. Returns True if file was updated."""
     url = get_raw_url(repo, branch, src_path)
@@ -68,10 +96,10 @@ def sync_file(repo: str, branch: str, src_path: str, dest_path: Path) -> bool:
     if content is None:
         return False
 
-    # Check if file exists and has same content
+    # Check if file exists and has same content (ignore line-ending differences)
     if dest_path.exists():
         existing = dest_path.read_bytes()
-        if existing == content:
+        if existing == content or existing.replace(b"\r\n", b"\n") == content.replace(b"\r\n", b"\n"):
             return False
 
     # Write new content
@@ -102,6 +130,28 @@ def sync_directory(repo: str, branch: str, src_path: str, dest_path: Path) -> tu
             sub_updated, sub_synced = sync_directory(repo, branch, item_src, item_dest)
             updated.extend(sub_updated)
             synced_paths.update(sub_synced)
+        elif item["type"] == "symlink":
+            target = item.get("target", "")
+            if not target:
+                # Directory listings omit 'target'; download raw content instead
+                raw = download_file(get_raw_url(repo, branch, item_src))
+                if raw:
+                    target = raw.decode("utf-8").strip()
+            if not target:
+                print(f"  Warning: symlink {item_src} has no target, skipping")
+                continue
+            resolved_path = resolve_symlink_target(item_src, target)
+            target_type = fetch_path_type(repo, resolved_path, branch)
+            if target_type == "dir":
+                sub_updated, sub_synced = sync_directory(repo, branch, resolved_path, item_dest)
+                updated.extend(sub_updated)
+                synced_paths.update(sub_synced)
+            elif target_type == "file":
+                synced_paths.add(item_dest)
+                if sync_file(repo, branch, resolved_path, item_dest):
+                    updated.append(str(item_dest))
+            else:
+                print(f"  Warning: could not resolve symlink {item_src} -> {target}")
 
     return updated, synced_paths
 

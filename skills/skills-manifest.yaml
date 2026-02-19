@@ -50,3 +50,11 @@ skills:
       branch: main
       path: plugins/database-design/skills/postgresql/
     destination: skills/postgresql-design/
+
+  # nextlevelbuilder's UI/UX Pro Max skill
+  - name: ui-ux-pro-max
+    source:
+      repo: nextlevelbuilder/ui-ux-pro-max-skill
+      branch: main
+      path: .claude/skills/ui-ux-pro-max/
+    destination: skills/ui-ux-pro-max/
